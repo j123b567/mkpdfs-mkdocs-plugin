@@ -52,7 +52,7 @@ class Generator(object):
             return
         self.gen_articles()
         font_config = FontConfiguration()
-        css = self.add_css(font_config);
+        self.add_head()
         pdf_path = os.path.join(self.mkdconfig['site_dir'],
         self.config['output_path'])
         os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
@@ -117,14 +117,22 @@ class Generator(object):
         self._articles[page.file.url] = article
         return self.get_path_to_pdf(page.file.dest_path)
 
-    def add_css(self, font_config):
-        css_url = urls.path2url(self.design)
-        self.html.head.clear()
-        css_tag = BeautifulSoup(
-            '<title>{}</title><link rel="stylesheet" \
-            href="{}" type="text/css">'.
-            format(self.title, css_url), 'html5lib')
-        self.html.head.insert(0, css_tag)
+    def add_head(self):
+        title = self.html.new_tag('title')
+        title.string = self.title
+        self.html.head.insert(0, title)
+
+        for key, val in (
+            ("author", self.config['author'] or self.mkdconfig['site_author']),
+            ("description", self.mkdconfig['site_description']),
+        ):
+            if val:
+                meta = self.html.new_tag('meta', attrs=dict(name=key, content=val))
+                self.html.head.insert(0, meta)
+        for css in (self.design, ):
+            if css:
+                link = self.html.new_tag('link', attrs=dict(rel="stylesheet", type="text/css", href=urls.path2url(css)))
+                self.html.head.insert(0, link)
 
     def get_path_to_pdf(self, start):
         pdf_split = os.path.split(self.config['output_path'])
